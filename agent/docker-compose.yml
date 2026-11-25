@@ -1,0 +1,38 @@
+# Keikaku agent appliance — connects to a Keikaku server and works tasks.
+# The same appliance connects to EITHER edition: Keikaku Cloud
+# (https://api.keikaku.ai) or any self-hosted Keikaku server — set
+# API_BASE_URL in .env. Set AGENT_TOKEN (create an agent in the dashboard),
+# or leave it blank and connect via the agent dashboard at :9170.
+#
+#   cp .env.example .env
+#   docker compose up -d
+name: keikaku
+services:
+  agent:
+    image: ghcr.io/keikaku-ai/agent:latest
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-https://api.keikaku.ai}
+      AGENT_TOKEN: ${AGENT_TOKEN:-}
+      # 'true' accepts a self-signed self-hosted cert; 'false' for Keikaku Cloud
+      # or a server with real certs.
+      AGENT_INSECURE_TLS: ${AGENT_INSECURE_TLS:-false}
+      AGENT_CONFIG_DIR: /config
+      MODEL: ${AGENT_MODEL:-qwen2.5-coder:7b}
+      # The model server. Defaults to Ollama on the host (install it natively so
+      # it owns the GPU); all agents share this one Ollama (one model in VRAM).
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      POLL_INTERVAL_MS: '3000'
+      DASHBOARD_PORT: '9170'
+    ports:
+      - '${AGENT_DASHBOARD_PORT:-9170}:9170'
+    # Linux (Docker Engine) needs this to reach host Ollama; harmless on Docker
+    # Desktop (Win/Mac), where host.docker.internal already resolves.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - keikaku_agent_config:/config
+      - keikaku_agent_workspaces:/app/apps/agent/workspaces
+    restart: unless-stopped
+volumes:
+  keikaku_agent_config:
+  keikaku_agent_workspaces:

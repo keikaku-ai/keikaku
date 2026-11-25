@@ -1,0 +1,30 @@
+# Keikaku self-hosted — ONE container (single org, SQLite on a volume,
+# Node-terminated TLS). The same server that powers Keikaku Cloud, run locally.
+#
+#   cp .env.example .env    (set JWT_SECRET)
+#   docker compose up -d    then open  https://localhost:9143
+name: keikaku
+services:
+  server:
+    image: ghcr.io/keikaku-ai/server:latest
+    environment:
+      DEPLOY_MODE: selfhosted
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      SQLITE_PATH: /data/keikaku.sqlite
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      HTTPS_PORT: '9143'
+      HTTP_PORT: '9180'
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@keikaku.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Real certs for a public domain (omit for self-signed LAN/localhost):
+      # TLS_CERT_FILE: /certs/fullchain.pem
+      # TLS_KEY_FILE: /certs/privkey.pem
+    ports:
+      - '${HTTPS_PORT:-9143}:9143'
+      - '${HTTP_PORT:-9180}:9180'
+    volumes:
+      - keikaku_data:/data
+      # - ./certs:/certs:ro
+    restart: unless-stopped
+volumes:
+  keikaku_data:
